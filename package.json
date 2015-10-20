@@ -1,0 +1,16 @@
+{
+  "name": "discord-analytics",
+  "version": "0.0.1",
+  "description": "Captures and records event from DiscordApp",
+  "main": "index.js",
+  "scripts": {
+    "configure": "cp config.sample.ls config.ls"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^3.8.3",
+    "pipend-spy": "0.0.4",
+    "prelude-ls": "^1.1.2"
+  }
+}
