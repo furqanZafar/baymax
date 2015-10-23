@@ -28,6 +28,7 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                     channel-name: channels-hash[channel-id].name
                     username: user
                     mentions: raw-event?.d?.mentions |> map (.username)
+                    mention-everyone: raw-event?.d?.mention_everyone
                     message: message
 
                 record do 
@@ -50,6 +51,7 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                             timestamp: Date.now!
                             username: user
                             status: status
+                            game-id: raw-event.d.game_id
 
             # try to reconnect on disconnect
             bot.on \disconnect, ->
@@ -58,5 +60,5 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                 <- set-timeout _, retry-timeout
                 start-monitoring config
 
-
 start-monitoring config
+
