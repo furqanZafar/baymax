@@ -3,7 +3,8 @@ DiscordClient = require \discord.io
 {find, group-by, keys, map, Obj, pairs-to-obj, values} = require \prelude-ls
 {record} = (require \pipend-spy) config.storage-details
 
-start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
+# start-monitoring :: {email :: String, pasword :: String, server-name :: String, ...} -> Void
+start-monitoring = ({email, password, server-name, retry-timeout}:config) !->
 
     bot = new DiscordClient {email, password}
         ..connect!
@@ -15,7 +16,10 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
 
             # fix-message :: String -> String
             fix-message = (message) ->
-                bot.fix-message message .replace /\<\#(.*?)\>/g, (, channel-id) -> '#' + bot.servers[server.id].channels[channel-id].name                
+                bot.fix-message message .replace do 
+                    /\<\#(.*?)\>/g
+                    (, channel-id) -> 
+                        '#' + bot.servers[server.id].channels[channel-id].name
             
             # record-chat-event :: String -> String -> Int -> String -> object -> Void
             record-chat-event = (username, user-id, timestamp, event-type, event-args) !->
@@ -49,7 +53,7 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                         \new-user
                         {}
 
-            bot.on \presence, (username, user-id, status, raw-event) ->
+            bot.on \presence, (username, user-id, status, game-name, raw-event) ->
                 if raw-event.d.guild_id == server.id
                     record-chat-event do 
                         username
@@ -58,9 +62,10 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                         \presence
                         status: status
                         game-id: raw-event.d.game_id
+                        game-name: game-name
 
             # try to reconnect on disconnect
-            bot.on \disconnect, ->
+            bot.on \disconnected, ->
                 console.log \disconnected, arguments
                 clear-interval interval
                 <- set-timeout _, retry-timeout

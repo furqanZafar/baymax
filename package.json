@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "discord.io": "^1.4.1",
-    "pipend-spy": "0.0.4",
+    "pipend-spy": "^0.1.0",
     "prelude-ls": "^1.1.2"
   }
 }
