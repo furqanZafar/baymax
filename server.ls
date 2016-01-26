@@ -67,7 +67,6 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) !->
             # try to reconnect on disconnect
             bot.on \disconnected, ->
                 console.log \disconnected, arguments
-                clear-interval interval
                 <- set-timeout _, retry-timeout
                 start-monitoring config
 
