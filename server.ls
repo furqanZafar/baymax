@@ -1,10 +1,12 @@
-require! \./config
+require! \body-parser
+{http-port}:config = require \./config
 DiscordClient = require \discord.io
-{find, group-by, keys, map, Obj, pairs-to-obj, values} = require \prelude-ls
+require! \express
+{each, find, group-by, keys, map, Obj, pairs-to-obj, values} = require \prelude-ls
 {record} = (require \pipend-spy) config.storage-details
 
-# start-monitoring :: {email :: String, pasword :: String, server-name :: String, ...} -> Void
-start-monitoring = ({email, password, server-name, retry-timeout}:config) !->
+# start-monitoring :: {email :: String, pasword :: String, server-name :: String, ...} -> DiscordBot
+start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
 
     bot = new DiscordClient {email, password}
         ..connect!
@@ -69,6 +71,24 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) !->
                 console.log \disconnected, arguments
                 <- set-timeout _, retry-timeout
                 start-monitoring config
+    bot
 
-start-monitoring config
+bot = start-monitoring config
+
+app = express!
+    ..set \views, __dirname + \/
+    ..engine \.html, (require \ejs).__express
+    ..set 'view engine', \ejs
+    ..use body-parser.json!
+    ..use body-parser.urlencoded {extended: false}
+    ..use \/node_modules, express.static "#__dirname/node_modules"
+    ..use \/public, express.static "#__dirname/public"
+
+(require \./routes) bot
+    |> each ([, method]:route) -> app[method].apply app, route.slice 2
+
+app.listen http-port
+console.log "Started listening on port #{http-port}"
+
+
 
