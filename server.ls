@@ -23,19 +23,21 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                     (, channel-id) -> 
                         '#' + bot.servers[server.id].channels[channel-id].name
             
-            # record-chat-event :: String -> String -> Int -> String -> object -> Void
-            record-chat-event = (username, user-id, timestamp, event-type, event-args) !->
-                record do
+            # record-event :: String -> String -> Int -> String -> object -> Void
+            record-event = (username, user-id, timestamp, event-type, event-args) !->
+                joined-at = bot.servers[server.id].members?[user-id]?.joined_at
+                joined-at-timestamp = if !!joined-at then (new Date joined-at .get-time!) else 0
+                record do 
                     event-type: event-type
                     event-args: {} <<< event-args <<< 
                         timestamp: timestamp
-                        time-delta: timestamp - (new Date bot.servers[server.id].members[user-id].joined_at .get-time!)
+                        time-delta: timestamp - joined-at-timestamp
                         user-id: user-id
                         username: username
 
             bot.on \message, (username, user-id, channel-id, message, raw-event) ->
                 if (bot.server-from-channel channel-id) == server.id
-                    record-chat-event do 
+                    record-event do 
                         username
                         user-id
                         new Date raw-event?.d?.timestamp .get-time!
@@ -46,18 +48,20 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                         message: fix-message message
 
             bot.on \debug, (raw-event) ->
-                if raw-event.t == \GUILD_MEMBER_ADD and raw-event.d.guild_id == server.id
-                    {user} = raw-event.d
-                    record-chat-event do 
-                        user.username
-                        user.id
-                        new Date raw-event?.d?.joined_at .get-time!
-                        \new-user
-                        {}
+                if raw-event.d.guild_id == server.id
+                    switch raw-event.t
+                    | \GUILD_MEMBER_ADD \GUILD_MEMBER_REMOVE =>
+                        {user} = raw-event.d
+                        record-event do 
+                            user.username
+                            user.id
+                            new Date raw-event?.d?.joined_at .get-time!
+                            if raw-event.t == \GUILD_MEMBER_ADD then \new-user else \left-community
+                            {}
 
             bot.on \presence, (username, user-id, status, game-name, raw-event) ->
                 if raw-event.d.guild_id == server.id
-                    record-chat-event do 
+                    record-event do 
                         username
                         user-id
                         Date.now!
