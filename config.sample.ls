@@ -2,6 +2,7 @@ module.exports =
     email: ''
     password: ''
     server-name: ''
+    log-events: true
     retry-timeout: 5000
     storage-details: 
         * name: \mongo

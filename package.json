@@ -10,9 +10,11 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.14.2",
+    "colors": "^1.1.2",
     "discord.io": "^1.4.1",
     "ejs": "^2.4.1",
     "express": "^4.13.4",
+    "moment": "^2.11.2",
     "pipend-spy": "^0.1.0",
     "prelude-ls": "^1.1.2"
   }

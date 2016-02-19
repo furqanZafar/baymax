@@ -1,12 +1,14 @@
 require! \body-parser
+require! \colors
 {http-port}:config = require \./config
 DiscordClient = require \discord.io
 require! \express
+require! \moment
 {each, find, group-by, keys, map, Obj, pairs-to-obj, values} = require \prelude-ls
 {record} = (require \pipend-spy) config.storage-details
 
-# start-monitoring :: {email :: String, pasword :: String, server-name :: String, ...} -> DiscordBot
-start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
+# start-monitoring :: {email :: String, pasword :: String, server-name :: String, log-events :: Boolean ...} -> DiscordBot
+start-monitoring = ({email, password, server-name, retry-timeout, log-events}:config) ->
 
     bot = new DiscordClient {email, password}
         ..connect!
@@ -16,6 +18,7 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
 
             server = find (.name == server-name), (initial-state?.d?.guilds ? [])
 
+            # replaces <#345793485734958> with #channelName
             # fix-message :: String -> String
             fix-message = (message) ->
                 bot.fix-message message .replace do 
@@ -23,17 +26,38 @@ start-monitoring = ({email, password, server-name, retry-timeout}:config) ->
                     (, channel-id) -> 
                         '#' + bot.servers[server.id].channels[channel-id].name
             
-            # record-event :: String -> String -> Int -> String -> object -> Void
-            record-event = (username, user-id, timestamp, event-type, event-args) !->
+            # log :: String -> String -> ()
+            log = (color, message) !->
+                if log-events
+                    current-time = moment!.format "ddd, D MMM YYYY, hh:mm:ss a"
+                    console.log colors[color] "[#{current-time}] #{message}"
+
+            # pretty :: object -> String
+            pretty = (obj) -> JSON.stringify obj, null, 4
+
+            # record-event :: String -> String -> Int -> String -> object -> p [InsertedEvent]
+            record-event = (username, user-id, timestamp, event-type, event-args) ->
+                args = {username, user-id, timestamp, event-type, event-args}
+                log \gray, "record, #{pretty args}"
+
                 joined-at = bot.servers[server.id].members?[user-id]?.joined_at
                 joined-at-timestamp = if !!joined-at then (new Date joined-at .get-time!) else 0
-                record do 
+                
+                # record event to database(s) using config.storage-details
+                result = record do 
                     event-type: event-type
                     event-args: {} <<< event-args <<< 
                         timestamp: timestamp
                         time-delta: timestamp - joined-at-timestamp
                         user-id: user-id
                         username: username
+                
+                result.then ->
+                    log \green, "success, #{pretty args}"
+
+                result.catch (err) ->
+                    log \red, "err, #{pretty args}, #{err.to-string!}"
+
 
             bot.on \message, (username, user-id, channel-id, message, raw-event) ->
                 if (bot.server-from-channel channel-id) == server.id
