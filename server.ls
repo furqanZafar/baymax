@@ -69,6 +69,7 @@ start-monitoring = ({email, password, server-name, retry-timeout, log-events}:co
                         channel-name: bot.servers[server.id].channels[channel-id].name
                         mentions: raw-event?.d?.mentions |> map (.username)
                         mention-everyone: raw-event?.d?.mention_everyone
+                        message-id: raw-event?.d?.id
                         message: fix-message message
 
             bot.on \debug, (raw-event) ->
@@ -82,6 +83,19 @@ start-monitoring = ({email, password, server-name, retry-timeout, log-events}:co
                             new Date raw-event?.d?.joined_at .get-time!
                             if raw-event.t == \GUILD_MEMBER_ADD then \new-user else \left-community
                             {}
+
+                if raw-event.t == \MESSAGE_UPDATE and server.id == (bot.server-from-channel raw-event.d.channel_id)
+                    {author, content, channel_id, timestamp, mentions, mention_everyone}? = raw-event?.d
+                    record-event do 
+                        author?.username
+                        author?.id
+                        new Date timestamp .get-time!
+                        \messageUpdate
+                        channel-name: bot.servers[server.id].channels[channel_id].name
+                        mentions: (mentions ? []) |> map (.username)
+                        mention-everyone: mention_everyone
+                        message-id: raw-event?.d?.id
+                        message: fix-message content
 
             bot.on \presence, (username, user-id, status, game-name, raw-event) ->
                 if raw-event.d.guild_id == server.id
