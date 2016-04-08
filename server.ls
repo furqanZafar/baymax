@@ -21,10 +21,13 @@ start-monitoring = ({email, password, server-name, retry-timeout, log-events}:co
             # replaces <#345793485734958> with #channelName
             # fix-message :: String -> String
             fix-message = (message) ->
-                bot.fix-message message .replace do 
-                    /\<\#(.*?)\>/g
-                    (, channel-id) -> 
-                        '#' + bot.servers[server.id].channels[channel-id].name
+                if typeof message == \string
+                    bot.fix-message message .replace do 
+                        /\<\#(.*?)\>/g
+                        (, channel-id) -> 
+                            '#' + bot.servers[server.id].channels[channel-id].name
+                else
+                    ""
             
             # log :: String -> String -> ()
             log = (color, message) !->
